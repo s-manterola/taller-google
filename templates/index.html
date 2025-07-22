@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head><title>Panadería Online</title></head>
+<body>
+<h1>Productos</h1>
+<ul id="lista"></ul>
+<script>
+fetch('/productos')
+.then(res => res.json())
+.then(data => {
+const lista = document.getElementById('lista');
+data.forEach(p => {
+const li = document.createElement('li');
+li.textContent = `${p.nombre} - $${p.precio}`;
+lista.appendChild(li);
+});
+});
+</script>
+</body>
+</html>
