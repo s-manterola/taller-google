@@ -1,8 +1,12 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
+
+from datetime import datetime
+
+import insercion
 
 productos = [
-    { 'id': 1, 'nombre': 'Baguette', 'precio': 1200 },
-    { 'id': 2, 'nombre': 'Croissant', 'precio': 1000 },
+    { 'id': 1, 'nombre': 'Baguette', 'precio': 1200, 'descripcion': 'un tipo de pan largo'},
+    { 'id': 2, 'nombre': 'Croissant', 'precio': 1000, 'descripcion': 'pan frances' },
 ]
 
 app = Flask(__name__)
@@ -16,9 +20,14 @@ def list():
     print('productos')
     return productos
 
-@app.route('/pedidos', methods=['POST'])
-def pedidos():
-    print('pedidos')
+@app.route('/pedido', methods=['POST'])
+def pedido():
+    now = datetime.now().date()
+    print(now)
+    cliente = request.args.get('cliente')
+    datos = request.get_json()
+    insercion.insercion(cliente, datos['items'], now)
+        
     return {'ok': 'ok'}
 
 if __name__ == "__main__":

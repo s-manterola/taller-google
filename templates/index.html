@@ -1,20 +1,168 @@
 <!DOCTYPE html>
 <html>
-<head><title>Panadería Online</title></head>
+<head>
+    <title>Panadería Online</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .product-item { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+        .product-item button { margin-left: 10px; padding: 5px 10px; cursor: pointer; }
+        #pedido-resumen { border: 1px solid #ccc; padding: 15px; margin-top: 20px; background-color: #f9f9f9; border-radius: 5px; }
+        #pedido-resumen h2 { margin-top: 0; }
+        #pedido-resumen ul { list-style: none; padding: 0; }
+        #pedido-resumen li { margin-bottom: 5px; }
+        #registrar-pedido-btn { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 15px; }
+        #registrar-pedido-btn:hover { background-color: #45a049; }
+        .message { margin-top: 15px; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
 <body>
-<h1>Productos</h1>
-<ul id="lista"></ul>
-<script>
-fetch('/productos')
-.then(res => res.json())
-.then(data => {
-const lista = document.getElementById('lista');
-data.forEach(p => {
-const li = document.createElement('li');
-li.textContent = `${p.nombre} - $${p.precio}`;
-lista.appendChild(li);
-});
-});
-</script>
+    <h1>Nuestros Productos</h1>
+    <div id="productos-container">
+        </div>
+
+    <hr>
+
+    <h2>Tu Pedido</h2>
+    <div id="pedido-resumen">
+        <ul id="items-pedido">
+            <li>No hay productos en tu pedido.</li>
+        </ul>
+        <p><strong>Total: $<span id="total-pedido">0</span></strong></p>
+        <button id="registrar-pedido-btn">Registrar Pedido</button>
+        <div id="mensaje-pedido" class="message" style="display:none;"></div>
+    </div>
+
+    <script>
+        const productosContainer = document.getElementById('productos-container');
+        const itemsPedidoList = document.getElementById('items-pedido');
+        const totalPedidoSpan = document.getElementById('total-pedido');
+        const registrarPedidoBtn = document.getElementById('registrar-pedido-btn');
+        const mensajePedidoDiv = document.getElementById('mensaje-pedido');
+
+        let productosDisponibles = []; // Almacenará los productos obtenidos del backend
+        let carrito = {}; // {producto_id: cantidad, ...}
+
+        // Función para cargar los productos desde el backend
+        async function cargarProductos() {
+            try {
+                const res = await fetch('http://127.0.0.1:5000/productos');
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                const data = await res.json();
+                productosDisponibles = data;
+                renderizarProductos();
+            } catch (error) {
+                console.error('Error al cargar productos:', error);
+                productosContainer.innerHTML = '<p>Error al cargar los productos. Inténtalo de nuevo más tarde.</p>';
+            }
+        }
+
+        // Función para renderizar los productos en la interfaz
+        function renderizarProductos() {
+            productosContainer.innerHTML = ''; // Limpiar el contenedor antes de añadir nuevos productos
+            productosDisponibles.forEach(p => {
+                const productItem = document.createElement('div');
+                productItem.classList.add('product-item');
+                productItem.innerHTML = `
+                    <h3>${p.nombre} - $${p.precio}</h3>
+                    <p>${p.descripcion}</p>
+                    <input type="number" id="cantidad-${p.id}" value="${carrito[p.id] || 0}" min="0" style="width: 60px;">
+                    <button onclick="agregarAlCarrito(${p.id})">Agregar al Pedido</button>
+                `;
+                productosContainer.appendChild(productItem);
+            });
+        }
+
+        // Función para agregar o actualizar la cantidad de un producto en el carrito
+        function agregarAlCarrito(productoId) {
+            const cantidadInput = document.getElementById(`cantidad-${productoId}`);
+            const cantidad = parseInt(cantidadInput.value);
+
+            if (cantidad > 0) {
+                carrito[productoId] = cantidad;
+            } else {
+                delete carrito[productoId]; // Si la cantidad es 0 o menos, eliminar del carrito
+            }
+            renderizarPedido();
+        }
+
+        // Función para renderizar el resumen del pedido
+        function renderizarPedido() {
+            itemsPedidoList.innerHTML = '';
+            let totalGeneral = 0;
+
+            if (Object.keys(carrito).length === 0) {
+                itemsPedidoList.innerHTML = '<li>No hay productos en tu pedido.</li>';
+            } else {
+                for (const productoId in carrito) {
+                    const cantidad = carrito[productoId];
+                    const producto = productosDisponibles.find(p => p.id === parseInt(productoId));
+
+                    if (producto) {
+                        const subtotal = producto.precio * cantidad;
+                        totalGeneral += subtotal;
+
+                        const li = document.createElement('li');
+                        li.textContent = `${producto.nombre} (x${cantidad}) - $${subtotal}`;
+                        itemsPedidoList.appendChild(li);
+                    }
+                }
+            }
+            totalPedidoSpan.textContent = totalGeneral;
+        }
+
+        // Función para registrar el pedido en el backend
+        registrarPedidoBtn.addEventListener('click', async () => {
+            const itemsParaEnviar = Object.keys(carrito).map(productoId => ({
+                producto_id: parseInt(productoId),
+                cantidad: carrito[productoId]
+            }));
+
+            if (itemsParaEnviar.length === 0) {
+                mostrarMensaje('No hay productos seleccionados para el pedido.', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('http://127.0.0.1:5000/pedido', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ items: itemsParaEnviar })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    mostrarMensaje(data.message, 'success');
+                    carrito = {}; // Limpiar el carrito después de un pedido exitoso
+                    renderizarProductos(); // Actualizar las cantidades en los inputs a 0
+                    renderizarPedido(); // Limpiar el resumen del pedido
+                } else {
+                    mostrarMensaje(data.message || 'Error al registrar el pedido.', 'error');
+                }
+            } catch (error) {
+                console.error('Error al registrar pedido:', error);
+                mostrarMensaje('Error de conexión al servidor.', 'error');
+            }
+        });
+
+        // Función para mostrar mensajes al usuario
+        function mostrarMensaje(mensaje, tipo) {
+            mensajePedidoDiv.textContent = mensaje;
+            mensajePedidoDiv.className = `message ${tipo}`;
+            mensajePedidoDiv.style.display = 'block';
+            setTimeout(() => {
+                mensajePedidoDiv.style.display = 'none';
+            }, 5000); // Ocultar el mensaje después de 5 segundos
+        }
+
+        // Cargar los productos al iniciar la página
+        cargarProductos();
+    </script>
 </body>
 </html>

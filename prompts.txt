@@ -1,0 +1,47 @@
+## crear frontend
+
+utilizando como base el siguiente HTML plano:
+
+<!DOCTYPE html>
+
+<html>
+
+<head><title>Panadería Online</title></head>
+
+<body>
+
+<h1>Productos</h1>
+
+<ul id="lista"></ul>
+
+<script>
+
+fetch('/api/productos')
+
+.then(res => res.json())
+
+.then(data => {
+
+const lista = document.getElementById('lista');
+
+data.forEach(p => {
+
+const li = document.createElement('li');
+
+li.textContent = ${p.nombre} - $${p.precio};
+
+lista.appendChild(li);
+
+});
+
+});   
+
+
+
+Me puedes ayudar a mejorar el código anterior para generar una versión que permita:
+
+Conectandose a un backend desarrollado en python, el cual tendrá 2 funciones que utilizará el frontend.
+
+La primera listar_productos, el cual entrega un listado de todos los productos, con su nombre, precio y descripción
+
+La segunda un método que permite registrar un pedido, el pedido se debe armar en el front permitiendo seleccionar del listado de productos los que se quiere llevar, elegir la cantidad de cada uno, y luego mediante un botón invocar este método del backend para registrarlo en la BD.

@@ -1,0 +1,37 @@
+## Crear tablas
+
+CREATE TABLE productos (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100),
+    precio INT,
+    descripcion TEXT
+);
+
+CREATE TABLE pedidos (
+    id SERIAL PRIMARY KEY,
+    cliente VARCHAR(100),
+    total INT,
+    fecha DATETIME
+);
+
+CREATE TABLE pedido_productos (
+    pedido_id INT,
+    producto_id INT,
+    cantidad INT
+);
+
+## poblar productos
+
+INSERT INTO productos (nombre, precio, descripcion) VALUES
+('Baguette', 1500, 'Pan francés largo y crujiente'),
+('Croissant', 2000, 'Panecillo hojaldrado con mantequilla'),
+('Pan integral', 1200, 'Hecho con harina integral, rico en fibra'),
+('Pan de centeno', 1800, 'Pan oscuro con sabor fuerte, hecho de centeno'),
+('Pan de molde', 1000, 'Pan suave ideal para sándwiches'),
+('Pan dulce', 1750, 'Pan suave con azúcar y sabor a vainilla o canela');
+
+## Crear secreto
+
+gcloud secrets create mydatabase-credentials \
+    --replication-policy="automatic" \
+    --data-file="credentials.json"
