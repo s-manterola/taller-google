@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Panadería Online</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background: #f5f5f5;
+    color: #333;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* Responsive: en móvil, pedido debajo */
+  @media (max-width: 700px) {
+    body {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 400px;
+    }
+  }
+
+  /* Productos (columna izquierda) */
+  #productos-container {
+    padding: 30px 40px;
+    overflow-y: auto;
+    background: #fff;
+  }
+  h1 {
+    margin-bottom: 20px;
+  }
+  .productos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+  }
+  @media (max-width: 900px) {
+    .productos-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 600px) {
+    .productos-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .product-item {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .product-item:hover {
+    box-shadow: 0 7px 20px rgba(0,0,0,0.15);
+    transform: translateY(-4px);
+  }
+  .product-item h3 {
+    margin: 0 0 8px 0;
+    font-weight: 700;
+    color: #2c3e50;
+  }
+  .product-item p {
+    flex-grow: 1;
+    color: #555;
+    font-size: 0.95rem;
+  }
+  .product-item input[type="number"] {
+    width: 60px;
+    padding: 6px;
+    font-size: 1rem;
+    border: 1.5px solid #ccc;
+    border-radius: 5px;
+    transition: border-color 0.3s ease;
+  }
+  .product-item input[type="number"]:focus {
+    border-color: #4caf50;
+    outline: none;
+  }
+  .product-item button {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    align-self: flex-start;
+    transition: background-color 0.3s ease;
+  }
+  .product-item button:hover {
+    background-color: #388e3c;
+  }
+
+  /* Columna de pedido (derecha) */
+  #pedido-resumen {
+    background-color: #fafafa;
+    border-left: 3px solid #4caf50;
+    padding: 30px 25px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  #pedido-resumen h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #4caf50;
+  }
+  #items-pedido {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 25px 0;
+    flex-grow: 1;
+  }
+  #items-pedido li {
+    margin-bottom: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  #total-pedido {
+    font-weight: 700;
+    font-size: 1.2rem;
+  }
+  #registrar-pedido-btn {
+    padding: 14px 22px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 700;
+    transition: background-color 0.3s ease;
+  }
+  #registrar-pedido-btn:hover {
+    background-color: #388e3c;
+  }
+  #mensaje-pedido {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 7px;
+    font-weight: 600;
+    display: none;
+  }
+  .success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+  .error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+
+  /* Scrollbar estilizado para la columna pedido */
+  #pedido-resumen::-webkit-scrollbar {
+    width: 8px;
+  }
+  #pedido-resumen::-webkit-scrollbar-thumb {
+    background-color: #4caf50;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+  <section id="productos-container">
+    <h1>Nuestros Productos</h1>
+    <div class="productos-grid"></div>
+  </section>
+
+  <aside id="pedido-resumen" aria-label="Resumen de tu pedido">
+    <h2>Tu Pedido</h2>
+    <ul id="items-pedido">
+      <li>No hay productos en tu pedido.</li>
+    </ul>
+    <p><strong>Total: $<span id="total-pedido">0</span></strong></p>
+    <button id="registrar-pedido-btn">Registrar Pedido</button>
+    <div id="mensaje-pedido" class="message"></div>
+  </aside>
+
+<script>
+  const productosGrid = document.querySelector('.productos-grid');
+  const itemsPedidoList = document.getElementById('items-pedido');
+  const totalPedidoSpan = document.getElementById('total-pedido');
+  const registrarPedidoBtn = document.getElementById('registrar-pedido-btn');
+  const mensajePedidoDiv = document.getElementById('mensaje-pedido');
+
+  let productosDisponibles = [];
+  let carrito = {};
+
+  async function cargarProductos() {
+    try {
+      const res = await fetch("/productos");
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const data = await res.json();
+      productosDisponibles = data;
+      renderizarProductos();
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+      productosGrid.innerHTML = '<p>Error al cargar los productos. Inténtalo de nuevo más tarde.</p>';
+    }
+  }
+
+  function renderizarProductos() {
+    productosGrid.innerHTML = '';
+    productosDisponibles.forEach(p => {
+      const productItem = document.createElement('div');
+      productItem.classList.add('product-item');
+      productItem.innerHTML = `
+        <h3>${p.nombre} - $${p.precio.toFixed(2)}</h3>
+        <p>${p.descripcion}</p>
+        <input type="number" id="cantidad-${p.id}" value="${carrito[p.id] || 0}" min="0" />
+        <button onclick="agregarAlCarrito(${p.id})">Agregar al Pedido</button>
+      `;
+      productosGrid.appendChild(productItem);
+    });
+  }
+
+  window.agregarAlCarrito = function(productoId) {
+    const cantidadInput = document.getElementById(`cantidad-${productoId}`);
+    const cantidad = parseInt(cantidadInput.value);
+
+    if (cantidad > 0) {
+      carrito[productoId] = cantidad;
+    } else {
+      delete carrito[productoId];
+    }
+    renderizarPedido();
+  };
+
+  function renderizarPedido() {
+    itemsPedidoList.innerHTML = '';
+    let totalGeneral = 0;
+
+    if (Object.keys(carrito).length === 0) {
+      itemsPedidoList.innerHTML = '<li>No hay productos en tu pedido.</li>';
+    } else {
+      for (const productoId in carrito) {
+        const cantidad = carrito[productoId];
+        const producto = productosDisponibles.find(p => p.id === parseInt(productoId));
+        if (producto) {
+          const subtotal = producto.precio * cantidad;
+          totalGeneral += subtotal;
+
+          const li = document.createElement('li');
+          li.textContent = `${producto.nombre} (x${cantidad}) - $${subtotal.toFixed(2)}`;
+          itemsPedidoList.appendChild(li);
+        }
+      }
+    }
+    totalPedidoSpan.textContent = totalGeneral.toFixed(2);
+  }
+
+  registrarPedidoBtn.addEventListener('click', async () => {
+    const itemsParaEnviar = Object.keys(carrito).map(productoId => ({
+      producto_id: parseInt(productoId),
+      cantidad: carrito[productoId]
+    }));
+
+    if (itemsParaEnviar.length === 0) {
+      mostrarMensaje('No hay productos seleccionados para el pedido.', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch('/pedido', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ items: itemsParaEnviar })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        mostrarMensaje(data.message, 'success');
+        carrito = {};
+        renderizarProductos();
+        renderizarPedido();
+      } else {
+        mostrarMensaje(data.message || 'Error al registrar el pedido.', 'error');
+      }
+    } catch (error) {
+      console.error('Error al registrar pedido:', error);
+      mostrarMensaje('Error de conexión al servidor.', 'error');
+    }
+  });
+
+  function mostrarMensaje(mensaje, tipo) {
+    mensajePedidoDiv.textContent = mensaje;
+    mensajePedidoDiv.className = `message ${tipo}`;
+    mensajePedidoDiv.style.display = 'block';
+    setTimeout(() => {
+      mensajePedidoDiv.style.display = 'none';
+    }, 5000);
+  }
+
+  cargarProductos();
+</script>
+
+</body>
+</html>
